@@ -28,6 +28,10 @@ install it directly from the Extension Hub.
 `Ctrl+Click` (Windows/Linux) or `Cmd+Click` (macOS) any local asset link.
 The file will be revealed and selected in your system file explorer.
 
+## Demo
+
+![Open File Location demo](./24-05-2026%2021-46.gif)
+
 ## Notes
 
 - Works with local asset links such as PDFs, images, audio, video, and other

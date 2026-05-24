@@ -1,0 +1,44 @@
+name: Publish plugin
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  PLUGIN_NAME: logseq-open-file-location
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Prepare package directory
+        run: |
+          mkdir -p "$PLUGIN_NAME"
+          cp index.js package.json manifest.json README.md "$PLUGIN_NAME"/
+          if [ -d assets ]; then cp -R assets "$PLUGIN_NAME"/; fi
+          if [ -f icon.png ]; then cp icon.png "$PLUGIN_NAME"/; fi
+
+      - name: Create release archives
+        run: |
+          zip -r "$PLUGIN_NAME.zip" "$PLUGIN_NAME"
+          tar -czf "$PLUGIN_NAME.tar.gz" "$PLUGIN_NAME"
+
+      - name: Create GitHub release
+        id: create_release
+        uses: ncipollo/release-action@v1
+        with:
+          allowUpdates: true
+          artifacts: "${{ env.PLUGIN_NAME }}.zip,${{ env.PLUGIN_NAME }}.tar.gz"
+          draft: false
+          prerelease: false
+          generateReleaseNotes: true

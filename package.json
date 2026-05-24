@@ -1,10 +1,14 @@
 {
   "name": "logseq-open-file-location",
   "version": "0.1.0",
-  "description": "Ctrl+Click a local asset link to reveal it in the file explorer",
+  "description": "Ctrl+Click a local asset link to reveal and select it in the system file explorer",
   "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/albilu/logseq-open-file-location.git"
+  },
   "logseq": {
-    "id": "open-file-location",
+    "id": "logseq-open-file-location",
     "title": "Open File Location"
   }
 }

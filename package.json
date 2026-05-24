@@ -1,0 +1,10 @@
+{
+  "name": "logseq-open-file-location",
+  "version": "0.1.0",
+  "description": "Ctrl+Click a local asset link to reveal it in the file explorer",
+  "main": "index.js",
+  "logseq": {
+    "id": "open-file-location",
+    "title": "Open File Location"
+  }
+}

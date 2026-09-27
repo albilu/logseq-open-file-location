@@ -1,0 +1,10 @@
+{
+  "package": "@logseq/libs",
+  "version": "0.0.17",
+  "tarball": "https://registry.npmjs.org/@logseq/libs/-/libs-0.0.17.tgz",
+  "integrity": "sha512-SkzzAaocmrgeHYrCOaRyEqzPOxw3d0qVEZSrt9qVvXE4tuEgbvEHR8tzI1N5RjgAv+PDWuGPiP7/mhcXHpINEw==",
+  "sha256": {
+    "lsplugin.user.js": "fbf51e570989ac2eccbd726816ef8a619612fb6c047dfe39cc2c9103b12b4669",
+    "lsplugin.user.js.LICENSE.txt": "eaef646c071bbc3a1bf13a78df5374bccc39042e74083e9932673fd719c0335a"
+  }
+}

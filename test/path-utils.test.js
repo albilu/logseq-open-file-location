@@ -1,57 +1,69 @@
 'use strict'
+const test = require('node:test')
+const assert = require('node:assert/strict')
+const { fileURLToPath } = require('node:url')
+const path = require('node:path')
+const { parseReference, normalizePath, resolveAssetPath, containingDirectory, toFileUrl } = require('../index.js')
 
-const {
-  stripFileProtocol,
-  resolveAssetPath,
-  normalizePath,
-  buildOpenFileInFolderAction
-} = require('../src/path-utils')
+for (const [name, reference, expected] of [
+  ['Unix URI', 'file:///home/me/file.pdf', '/home/me/file.pdf'],
+  ['Windows URI', 'file:///C:/Users/me/file.pdf', 'C:/Users/me/file.pdf'],
+  ['Windows assets URI', 'assets://C:/Users/me/file.pdf', 'C:/Users/me/file.pdf'],
+  ['localhost authority', 'file://localhost/home/me/file.pdf', '/home/me/file.pdf'],
+  ['UNC authority', 'file://server/share/file.pdf', '//server/share/file.pdf'],
+  ['Logseq media URI', 'assets:///graph/assets/image.png', '/graph/assets/image.png'],
+  ['encoded space', '../assets/report%20one.pdf', '../assets/report one.pdf'],
+  ['encoded Unicode', '../assets/%C3%A9t%C3%A9.pdf', '../assets/été.pdf'],
+  ['decode exactly once', 'file:///graph/percent%2520.pdf', '/graph/percent%20.pdf'],
+  ['encoded filename punctuation', 'file:///graph/a%23b%3Fc%25.pdf', '/graph/a#b?c%.pdf'],
+  ['fragment and query', '../assets/a.pdf?download=1#page=2', '../assets/a.pdf'],
+  ['URI fragment', 'file:///graph/a.pdf#page=2', '/graph/a.pdf']
+]) test(name, () => assert.equal(parseReference(reference).path, expected))
 
-function assert(cond, msg) {
-  if (!cond) throw new Error('FAIL: ' + msg)
+test('raw filesystem names retain literal percent, hash, and query characters', () => {
+  assert.equal(parseReference('/graph/a%20#b?c.pdf', true).path, '/graph/a%20#b?c.pdf')
+})
+
+for (const prefix of ['../assets/', './assets/', 'assets/']) {
+  test('graph asset reference ' + prefix, () => {
+    assert.equal(resolveAssetPath('/graph', prefix + 'a.pdf', true), '/graph/assets/a.pdf')
+    assert.equal(resolveAssetPath('/graph', prefix + 'a.pdf'), '/graph/assets/a.pdf')
+  })
 }
 
-// --- stripFileProtocol ---
-assert(stripFileProtocol('file:///home/user/file.pdf') === '/home/user/file.pdf',    'unix file://')
-assert(stripFileProtocol('file:///C:/Users/me/file.pdf') === 'C:/Users/me/file.pdf', 'windows file://')
-assert(stripFileProtocol('/already/absolute.pdf') === '/already/absolute.pdf',        'no-op non-file://')
+test('bare PDF embed uses assets while a generic relative link uses graph root', () => {
+  assert.equal(resolveAssetPath('/graph', 'a.pdf', true), '/graph/assets/a.pdf')
+  assert.equal(resolveAssetPath('/graph', 'docs/a.zip'), '/graph/docs/a.zip')
+})
 
-// --- resolveAssetPath ---
-// Relative paths
-assert(
-  resolveAssetPath('/home/user/notes', '../assets/doc.pdf') === '/home/user/notes/../assets/doc.pdf',
-  'relative joined'
-)
-// Unix absolute
-assert(
-  resolveAssetPath('/home/user/notes', '/etc/file.pdf') === '/etc/file.pdf',
-  'unix absolute passthrough'
-)
-// Windows absolute
-assert(
-  resolveAssetPath('/home/user/notes', 'C:/Users/me/file.pdf') === 'C:/Users/me/file.pdf',
-  'windows absolute passthrough'
-)
-// Already absolute (as would be passed after stripFileProtocol)
-assert(
-  resolveAssetPath('/home/user/notes', '/home/user/file.pdf') === '/home/user/file.pdf',
-  'already absolute'
-)
+test('absolute paths need no graph', () => {
+  assert.equal(resolveAssetPath(null, '/outside/a.pdf'), '/outside/a.pdf')
+  assert.equal(resolveAssetPath(null, 'C:\\Users\\me\\a.pdf'), 'C:/Users/me/a.pdf')
+  assert.equal(resolveAssetPath(null, '../assets/a.pdf'), null)
+})
 
-// --- normalizePath ---
-assert(normalizePath('/home/user/notes/../assets/doc.pdf') === '/home/user/assets/doc.pdf', 'resolve ..')
-assert(normalizePath('/home/user/./notes/file.pdf') === '/home/user/notes/file.pdf',         'resolve .')
-assert(normalizePath('/home/user/notes/file.pdf') === '/home/user/notes/file.pdf',           'no change')
-// Windows-style (forward slashes after Logseq normalization)
-assert(normalizePath('C:/Users/me/../docs/file.pdf') === 'C:/Users/docs/file.pdf', 'windows ..')
-// Returns null for Unix root (empty stack)
-assert(normalizePath('/..') === null, 'null for empty path')
+for (const input of ['C:\\Users\\me\\..\\a.pdf', '//server/share/graph/pages/../assets/a.pdf', '//server/share/../../a.pdf']) {
+  test('Windows normalization agrees with node:path for ' + input, () => {
+    assert.equal(normalizePath(input), path.win32.normalize(input).replace(/\\/g, '/'))
+  })
+}
 
-// --- buildOpenFileInFolderAction ---
-const action = buildOpenFileInFolderAction('/home/user/assets/doc.pdf')
-assert(Array.isArray(action), 'action is array')
-assert(action.length === 2, 'action has type and payload')
-assert(action[0] === 'openFileInFolder', 'action uses openFileInFolder type')
-assert(action[1] === '/home/user/assets/doc.pdf', 'action includes full file path')
+test('network graph retains its server and share', () => {
+  assert.equal(resolveAssetPath('//server/share/graph', '../assets/a.pdf'), '//server/share/graph/assets/a.pdf')
+})
 
-console.log('path-utils: all assertions passed')
+for (const input of ['/graph/A #?%/été.pdf', '/file.pdf', 'C:/A #?%/file.pdf', '//server/share/A #?%/file.pdf']) {
+  test('fallback URL round trips the filename: ' + input, () => {
+    const windows = !input.startsWith('/') || input.startsWith('//')
+    const decoded = fileURLToPath(toFileUrl(input), { windows })
+    assert.equal(windows ? decoded.replace(/\\/g, '/') : decoded, input)
+  })
+}
+
+test('containing directories preserve filesystem roots', () => {
+  assert.equal(containingDirectory('/a.pdf'), '/')
+  assert.equal(containingDirectory('C:/a.pdf'), 'C:/')
+  assert.equal(containingDirectory('//server/share/a.pdf'), '//server/share')
+  assert.equal(normalizePath('/../'), '/')
+  assert.equal(normalizePath('C:relative.pdf'), null)
+})

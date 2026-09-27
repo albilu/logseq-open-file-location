@@ -1,8 +1,14 @@
 {
   "name": "logseq-open-file-location",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Ctrl+Click a local asset link to reveal and select it in the system file explorer",
-  "main": "index.js",
+  "main": "index.html",
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "check": "node --check index.js && node scripts/vendor-sdk.cjs --check && npm test",
+    "vendor:sdk": "node scripts/vendor-sdk.cjs",
+    "package": "node scripts/package.cjs"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/albilu/logseq-open-file-location.git"
@@ -10,5 +16,8 @@
   "logseq": {
     "id": "logseq-open-file-location",
     "title": "Open File Location"
+  },
+  "devDependencies": {
+    "@logseq/libs": "0.0.17"
   }
 }

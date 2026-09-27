@@ -1,30 +1,21 @@
 'use strict'
+const test = require('node:test')
+const assert = require('node:assert/strict')
+const { isLocalAsset } = require('../index.js')
 
-const { isLocalAsset } = require('../src/detect-asset')
+for (const href of [
+  'file:///home/me/file.pdf', 'FILE:///C:/Users/me/a.pdf', '../assets/a.pdf', './a.png',
+  'assets/audio.mp3', 'assets:///graph/image.png', '/graph/a.pdf', 'C:\\Users\\me\\a.pdf',
+  '//server/share/a.pdf', 'file://server/share/a.pdf', '../assets/a.pdf#page=2',
+  'file:///graph/a.pdf?download=1', '../assets/%C3%A9t%C3%A9.pdf'
+]) test('recognizes local reference ' + href, () => assert.equal(isLocalAsset(href), true))
 
-function assert(cond, msg) {
-  if (!cond) throw new Error('FAIL: ' + msg)
-}
-
-// file:// URIs
-assert(isLocalAsset('file:///home/user/notes/assets/doc.pdf') === true,  'file:// pdf')
-assert(isLocalAsset('file:///C:/Users/me/doc.pdf') === true,             'file:// windows pdf')
-
-// Relative paths with extensions
-assert(isLocalAsset('../assets/file.pdf') === true,  'relative pdf')
-assert(isLocalAsset('./img.png') === true,           'relative png')
-assert(isLocalAsset('assets/audio.mp3') === true,   'bare relative mp3')
-
-// .md files are excluded
-assert(isLocalAsset('../pages/note.md') === false,  'md excluded')
-assert(isLocalAsset('file:///home/user/note.md') === false, 'file:// md excluded')
-
-// Remote / internal protocols
-assert(isLocalAsset('http://example.com/file.pdf') === false,  'http excluded')
-assert(isLocalAsset('https://example.com/f.png') === false,    'https excluded')
-assert(isLocalAsset('logseq://graph/mypage') === false,        'logseq excluded')
-
-// No extension
-assert(isLocalAsset('notes/meeting') === false, 'no extension')
-
-console.log('detect-asset: all assertions passed')
+for (const href of [
+  undefined, '', 'notes/meeting', '../pages/note.md', 'file:///graph/note.MD#section',
+  '../pages/note.md?raw=1', 'file:///graph/note%2Emd', 'HTTP://example.com/a.pdf',
+  'https://example.com/a.pdf', 'HTTPS://example.com/a.pdf', 'mailto:audit@example.com',
+  'FTP://example.com/a.zip', 'logseq://graph/note.pdf', 'LoGsEq://graph/note.pdf',
+  'zotero://open-pdf/library/a.pdf', 'data:image/png;base64,a.png', 'blob:file:///a.pdf',
+  'javascript:alert(1)//a.pdf', 'lsp://logseq.io/plugin/index.html', 'C:relative.pdf',
+  'file:///graph/', 'file:///graph/%00.pdf', '../assets/a%2Fb.pdf', '../assets/a%ZZ.pdf'
+]) test('ignores non-assets or malformed references: ' + href, () => assert.equal(isLocalAsset(href), false))

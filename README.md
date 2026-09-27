@@ -20,9 +20,6 @@ image, audio clip, video, or other attachment stored in `assets/`.
 2. Open the `...` menu → **Plugins** → **Load unpacked plugin**.
 3. Select this folder.
 
-For a downloaded release, extract the archive and select its plugin folder.
-The SDK is bundled locally, so loading the plugin also works offline; no build
-or dependency installation is required.
 
 Once the plugin is published to the Logseq marketplace, you will also be able to
 install it directly from the Extension Hub.
